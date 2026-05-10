@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from app.services.file_service import FileService
 from app.services.agent_orchestrator import AgentOrchestrator
-from app.models import UploadResponse, AnalysisRequest, AnalysisResponse, ReportResponse
+from app.models import UploadResponse, AnalysisRequest, AnalysisResponse, QuestionRequest, QuestionResponse, ReportResponse
 from datetime import datetime
 import uuid
 
@@ -172,6 +172,50 @@ async def generate_report(file_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+@router.post("/ask/{file_id}", response_model=QuestionResponse)
+async def ask_document_question(file_id: str, request: QuestionRequest):
+    """Ask a follow-up question about an uploaded/analyzed document"""
+
+    if file_id not in documents_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    if not request.question.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Question cannot be empty"
+        )
+
+    doc = documents_db[file_id]
+    analysis = analyses_db.get(file_id, {})
+    context = {
+        "analysis": analysis.get("analysis"),
+        "entities": analysis.get("entities"),
+        "evidence": analysis.get("evidence"),
+        "contradictions": analysis.get("contradictions"),
+        "timeline": analysis.get("timeline"),
+        "risk": analysis.get("risk"),
+        "report": analysis.get("report"),
+    }
+
+    result = await orchestrator.ai_service.answer_question(
+        request.question.strip(),
+        doc.get("text", ""),
+        str(context),
+    )
+
+    return QuestionResponse(
+        success=True,
+        file_id=file_id,
+        question=request.question.strip(),
+        answer=result.get("answer", ""),
+        provider=result.get("provider", "unknown"),
+        timestamp=datetime.now().isoformat(),
+    )
 
 
 @router.get("/reports/{report_id}")

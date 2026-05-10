@@ -211,6 +211,71 @@ Entities: {entities[:500]}"""
                 "data": self._get_mock_report()
             }
 
+    async def answer_question(self, question: str, document_text: str, analysis_context: str) -> dict:
+        """Answer a user question using the uploaded document and agent results."""
+        try:
+            if self.provider == "gemini":
+                answer = await self._generate_with_gemini(
+                    "You answer questions about legal documents in simple, careful language. Do not invent facts. If the answer is not in the document or analysis, say what is missing.",
+                    f"""Document text:
+{document_text[:5000]}
+
+Agent analysis:
+{analysis_context[:4000]}
+
+User question:
+{question}
+
+Answer in plain language with 2-5 concise bullet points when useful."""
+                )
+                return {
+                    "success": True,
+                    "provider": "gemini",
+                    "answer": answer,
+                }
+
+            if self.client:
+                response = self.client.chat.completions.create(
+                    model=settings.OPENAI_MODEL,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You answer questions about legal documents in simple, careful language. Do not invent facts."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""Document text:
+{document_text[:5000]}
+
+Agent analysis:
+{analysis_context[:4000]}
+
+Question:
+{question}"""
+                        }
+                    ],
+                    temperature=0.2,
+                    max_tokens=900
+                )
+                return {
+                    "success": True,
+                    "provider": "openai",
+                    "answer": response.choices[0].message.content,
+                }
+
+            return {
+                "success": True,
+                "provider": "mock",
+                "answer": self._mock_question_answer(question, analysis_context),
+            }
+        except Exception as e:
+            return {
+                "success": True,
+                "provider": f"{self.provider}-fallback",
+                "answer": self._mock_question_answer(question, analysis_context),
+                "error": str(e),
+            }
+
     @staticmethod
     async def _generate_with_gemini(system_prompt: str, user_prompt: str) -> str:
         """Generate content with the Gemini Developer API."""
@@ -276,6 +341,17 @@ Entities: {entities[:500]}"""
             "contacts": len(parties) + len(amounts) + len(dates),
             "raw": content[:2000]
         }
+
+    @staticmethod
+    def _mock_question_answer(question: str, analysis_context: str) -> str:
+        lower_question = question.lower()
+        if "risk" in lower_question:
+            return "The main risks identified are payment delay, breach liability, and unclear obligations. Review the risk section before signing or acting on the document."
+        if "party" in lower_question or "who" in lower_question:
+            return "The document appears to involve the parties extracted in the entity section. Check the Parties card in the report for exact names and roles."
+        if "date" in lower_question or "timeline" in lower_question:
+            return "The important dates are listed in the timeline section. The system extracted dates from the document and converted them into review events."
+        return "I can answer based on the uploaded document and the generated analysis. Please ask about parties, dates, obligations, risks, contradictions, or recommendations."
     
     @staticmethod
     def _get_mock_analysis() -> dict:

@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Users, AlertCircle, FileText } from 'lucide-react'
+import { TrendingUp, Users, AlertCircle, FileText, Loader, MessageSquare, Send } from 'lucide-react'
+import axios from 'axios'
 
 interface ReportDashboardProps {
   data: any
@@ -14,6 +16,10 @@ type Finding = {
 }
 
 export default function ReportDashboard({ data }: ReportDashboardProps) {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [answerProvider, setAnswerProvider] = useState('')
+  const [isAsking, setIsAsking] = useState(false)
   const entityCount = data?.entities?.contacts
     || data?.entities?.parties?.length
     || data?.entities?.amounts?.length
@@ -64,6 +70,27 @@ export default function ReportDashboard({ data }: ReportDashboardProps) {
         return 'text-green-400'
       default:
         return 'text-gray-400'
+    }
+  }
+
+  const askQuestion = async () => {
+    if (!question.trim() || !data?.file_id) return
+
+    setIsAsking(true)
+    setAnswer('')
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await axios.post(`${apiUrl}/api/ask/${data.file_id}`, {
+        question: question.trim(),
+      })
+      setAnswer(response.data.answer)
+      setAnswerProvider(response.data.provider)
+    } catch (error) {
+      console.error('Question failed:', error)
+      setAnswer('I could not answer that question right now. Please check the backend and try again.')
+      setAnswerProvider('error')
+    } finally {
+      setIsAsking(false)
     }
   }
 
@@ -185,6 +212,45 @@ export default function ReportDashboard({ data }: ReportDashboardProps) {
                   </span>
                 ))}
               </div>
+            </div>
+
+            <div className="surface-panel p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sky-300">
+                  <MessageSquare size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Ask the Document</h3>
+                  <p className="text-sm text-slate-500">Ask follow-up questions using the report context.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') askQuestion()
+                  }}
+                  placeholder="What are the biggest risks?"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-sky-500"
+                />
+                <button
+                  onClick={askQuestion}
+                  disabled={isAsking || !question.trim()}
+                  className="inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                >
+                  {isAsking ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
+                </button>
+              </div>
+              {answer && (
+                <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs uppercase text-slate-500">Answer</p>
+                    <p className="text-xs text-sky-300">{answerProvider}</p>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">{answer}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

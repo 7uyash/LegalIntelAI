@@ -49,6 +49,19 @@ class ReportRequest(BaseModel):
     file_id: str
 
 
+class QuestionRequest(BaseModel):
+    question: str
+
+
+class QuestionResponse(BaseModel):
+    success: bool
+    file_id: str
+    question: str
+    answer: str
+    provider: str
+    timestamp: str
+
+
 class ReportResponse(BaseModel):
     success: bool
     report_id: str
