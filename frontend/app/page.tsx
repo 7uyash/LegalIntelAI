@@ -11,7 +11,6 @@ import Footer from '@/components/Footer'
 export default function Home() {
   const [activeSection, setActiveSection] = useState('upload')
   const [analysisData, setAnalysisData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
 
   const handleUploadSuccess = (data: any) => {
     setAnalysisData(data)
@@ -19,17 +18,16 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen bg-dark-900 overflow-hidden">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="blur-glow w-96 h-96 bg-purple-500 opacity-10 -top-32 -left-32"></div>
-        <div className="blur-glow w-96 h-96 bg-blue-500 opacity-10 -bottom-32 -right-32"></div>
-        <div className="blur-glow w-96 h-96 bg-pink-500 opacity-10 top-1/2 right-1/4"></div>
-      </div>
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(to_right,rgba(148,163,184,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.06)_1px,transparent_1px)] bg-[size:48px_48px]"></div>
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.10),transparent_36rem)]"></div>
 
-      {/* Content */}
       <div className="relative z-10">
-        <Header activeSection={activeSection} setActiveSection={setActiveSection} />
+        <Header
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          hasAnalysis={Boolean(analysisData)}
+        />
         
         <div className="min-h-screen">
           {activeSection === 'upload' && (

@@ -1,14 +1,15 @@
 'use client'
 
 import { Dispatch, SetStateAction } from 'react'
-import { Menu } from 'lucide-react'
+import { FileSearch, Menu } from 'lucide-react'
 
 interface HeaderProps {
   activeSection: string
   setActiveSection: Dispatch<SetStateAction<string>>
+  hasAnalysis?: boolean
 }
 
-export default function Header({ activeSection, setActiveSection }: HeaderProps) {
+export default function Header({ activeSection, setActiveSection, hasAnalysis = false }: HeaderProps) {
   const sections = [
     { id: 'upload', label: 'Upload' },
     { id: 'workflow', label: 'Workflow' },
@@ -17,27 +18,31 @@ export default function Header({ activeSection, setActiveSection }: HeaderProps)
   ]
 
   return (
-    <header className="sticky top-0 z-50 glass-effect border-b border-glass-lighter">
+    <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/88 backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+        <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">⚖️</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-500/30 bg-sky-500/10">
+              <FileSearch size={19} className="text-sky-300" />
             </div>
-            <h1 className="gradient-text text-2xl font-bold">LegalIntel AI</h1>
+            <div>
+              <h1 className="text-base font-semibold tracking-wide text-white">LegalIntel AI</h1>
+              <p className="hidden text-xs text-slate-500 sm:block">Autonomous legal investigation</p>
+            </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden items-center rounded-lg border border-slate-800 bg-slate-900/70 p-1 md:flex">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
-                className={`transition-all duration-300 pb-2 border-b-2 ${
+                disabled={!hasAnalysis && section.id !== 'upload'}
+                className={`rounded-md px-3 py-2 text-sm transition-colors ${
                   activeSection === section.id
-                    ? 'border-blue-400 text-blue-400'
-                    : 'border-transparent text-gray-400 hover:text-gray-300'
+                    ? 'bg-slate-800 text-white'
+                    : !hasAnalysis && section.id !== 'upload'
+                    ? 'cursor-not-allowed text-slate-600'
+                    : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
                 }`}
               >
                 {section.label}
@@ -45,8 +50,7 @@ export default function Header({ activeSection, setActiveSection }: HeaderProps)
             ))}
           </nav>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden text-gray-400 hover:text-gray-300">
+          <button className="rounded-lg border border-slate-800 p-2 text-slate-400 hover:text-slate-200 md:hidden">
             <Menu size={24} />
           </button>
         </div>

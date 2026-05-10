@@ -1,10 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from app.services.file_service import FileService
-from app.services.ai_service import AIService
-from app.models import UploadResponse, AnalysisResponse, ReportResponse
+from app.services.agent_orchestrator import AgentOrchestrator
+from app.models import UploadResponse, AnalysisRequest, AnalysisResponse, ReportResponse
 from datetime import datetime
 import uuid
-import os
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -14,7 +13,7 @@ analyses_db = {}
 reports_db = {}
 
 file_service = FileService()
-ai_service = AIService()
+orchestrator = AgentOrchestrator()
 
 
 @router.post("/upload", response_model=UploadResponse)
@@ -56,6 +55,9 @@ async def upload_document(file: UploadFile = File(...)):
             "file_path": file_path,
             "pages": pdf_result["pages"],
             "text": pdf_result["text"],
+            "extraction_method": pdf_result.get("extraction_method", "embedded_text"),
+            "ocr_used": pdf_result.get("ocr_used", False),
+            "ocr_status": pdf_result.get("ocr_status", "not_needed"),
             "uploaded_at": datetime.now().isoformat()
         }
         
@@ -78,7 +80,7 @@ async def upload_document(file: UploadFile = File(...)):
 
 
 @router.post("/analyze/{file_id}", response_model=AnalysisResponse)
-async def analyze_document(file_id: str):
+async def analyze_document(file_id: str, request: AnalysisRequest | None = None):
     """Analyze uploaded document"""
     
     if file_id not in documents_db:
@@ -89,30 +91,26 @@ async def analyze_document(file_id: str):
     
     try:
         doc = documents_db[file_id]
-        text = doc["text"]
-        
-        # Run AI analysis
-        analysis_result = await ai_service.analyze_legal_document(text)
-        entities_result = await ai_service.extract_entities(text)
-        report_result = await ai_service.generate_report(
-            analysis_result.get("analysis", ""),
-            str(entities_result.get("entities", ""))
-        )
+        analysis_bundle = await orchestrator.run(doc)
         
         # Store analysis
         analyses_db[file_id] = {
-            "analysis": analysis_result,
-            "entities": entities_result,
-            "report": report_result,
+            **analysis_bundle,
             "analyzed_at": datetime.now().isoformat()
         }
         
         return AnalysisResponse(
             success=True,
             file_id=file_id,
-            analysis=analysis_result.get("data") or analysis_result,
-            entities=entities_result.get("data") or entities_result,
-            report=report_result.get("data") or report_result,
+            analysis=analysis_bundle["analysis"],
+            entities=analysis_bundle["entities"],
+            report=analysis_bundle["report"],
+            workflow=analysis_bundle["workflow"],
+            evidence=analysis_bundle["evidence"],
+            contradictions=analysis_bundle["contradictions"],
+            timeline=analysis_bundle["timeline"],
+            risk=analysis_bundle["risk"],
+            integrations=analysis_bundle["integrations"],
             timestamp=datetime.now().isoformat()
         )
     
@@ -149,6 +147,12 @@ async def generate_report(file_id: str):
             "pages": doc["pages"],
             "analysis": analysis.get("analysis"),
             "entities": analysis.get("entities"),
+            "report": analysis.get("report"),
+            "evidence": analysis.get("evidence", []),
+            "contradictions": analysis.get("contradictions", []),
+            "timeline": analysis.get("timeline", []),
+            "risk": analysis.get("risk", {}),
+            "integrations": analysis.get("integrations", {}),
             "generated_at": datetime.now().isoformat(),
             "status": "completed"
         }
@@ -204,7 +208,36 @@ async def get_document_status(file_id: str):
         "file_id": file_id,
         "filename": doc["filename"],
         "pages": doc["pages"],
+        "extraction_method": doc.get("extraction_method", "embedded_text"),
+        "ocr_used": doc.get("ocr_used", False),
+        "ocr_status": doc.get("ocr_status", "not_needed"),
         "uploaded_at": doc["uploaded_at"],
         "analyzed": is_analyzed,
         "analysis_data": analyses_db.get(file_id) if is_analyzed else None
+    }
+
+
+@router.get("/integrations/status")
+async def get_integrations_status():
+    """Get hackathon integration readiness status"""
+    return {
+        "success": True,
+        "integrations": {
+            "zynd": orchestrator.zynd_service.status(),
+            "apify": {
+                "enabled": orchestrator.apify_service.enabled,
+                "actor": "apify/google-search-scraper",
+                "purpose": "Live web evidence collection and public-source research.",
+            },
+            "superplane": orchestrator.superplane_service.status(),
+        }
+    }
+
+
+@router.get("/superplane/workflow")
+async def get_superplane_workflow():
+    """Preview the intended Superplane workflow graph"""
+    return {
+        "success": True,
+        "workflow": orchestrator.superplane_service.workflow_preview()
     }

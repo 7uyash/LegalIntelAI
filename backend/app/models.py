@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 
 class UploadResponse(BaseModel):
@@ -16,6 +16,18 @@ class AnalysisRequest(BaseModel):
     analyze_text: bool = True
     extract_entities: bool = True
     generate_report: bool = True
+    include_web_investigation: bool = True
+    include_contradiction_detection: bool = True
+    include_timeline: bool = True
+    include_risk_assessment: bool = True
+
+
+class AgentStep(BaseModel):
+    name: str
+    status: str
+    summary: str
+    provider: str
+    artifacts: Optional[List[dict]] = None
 
 
 class AnalysisResponse(BaseModel):
@@ -24,6 +36,12 @@ class AnalysisResponse(BaseModel):
     analysis: Optional[dict] = None
     entities: Optional[dict] = None
     report: Optional[dict] = None
+    workflow: Optional[List[AgentStep]] = None
+    evidence: Optional[List[dict]] = None
+    contradictions: Optional[List[dict]] = None
+    timeline: Optional[List[dict]] = None
+    risk: Optional[dict] = None
+    integrations: Optional[Dict[str, Any]] = None
     timestamp: str
 
 

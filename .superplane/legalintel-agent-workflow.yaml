@@ -1,0 +1,70 @@
+name: LegalIntel Agent Review Pipeline
+description: >
+  Superplane canvas blueprint for coordinating LegalIntel's autonomous legal
+  document investigation workflow across upload, agent analysis, risk gate, and
+  report generation.
+
+nodes:
+  - id: manual-submission
+    name: Manual Submission Trigger
+    type: manual_run
+    emits:
+      - document_path
+      - reviewer_email
+
+  - id: upload-document
+    name: Upload Document
+    type: http_request
+    subscribes_to:
+      - manual-submission
+    config:
+      method: POST
+      url: "${LEGALINTEL_API_URL}/api/upload"
+      body_type: multipart_form
+      file_field: file
+      file_value: "$['Manual Submission Trigger'].data.document_path"
+
+  - id: run-agent-analysis
+    name: Run Agent Analysis
+    type: http_request
+    subscribes_to:
+      - upload-document
+    config:
+      method: POST
+      url: "${LEGALINTEL_API_URL}/api/analyze/$['Upload Document'].data.body.file_id"
+      json:
+        include_web_investigation: true
+        include_contradiction_detection: true
+        include_timeline: true
+        include_risk_assessment: true
+
+  - id: risk-gate
+    name: Risk Gate
+    type: if
+    subscribes_to:
+      - run-agent-analysis
+    expression: "$['Run Agent Analysis'].data.body.risk.score >= 75"
+    true_channel: human-review
+    false_channel: generate-report
+
+  - id: human-review
+    name: Human Review Required
+    type: no_operation
+    subscribes_to:
+      - risk-gate.true
+    description: "Pause here for counsel review when risk score is high."
+
+  - id: generate-report
+    name: Generate Report
+    type: http_request
+    subscribes_to:
+      - risk-gate.false
+    config:
+      method: POST
+      url: "${LEGALINTEL_API_URL}/api/reports/$['Upload Document'].data.body.file_id"
+
+audit_keys:
+  file_id: "$['Upload Document'].data.body.file_id"
+  risk_score: "$['Run Agent Analysis'].data.body.risk.score"
+  apify_mode: "$['Run Agent Analysis'].data.body.integrations.apify.mode"
+  zynd_agent: "$['Run Agent Analysis'].data.body.integrations.zynd.agent_name"

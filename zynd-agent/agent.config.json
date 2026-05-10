@@ -1,0 +1,11 @@
+{
+  "name": "legalintel-investigator",
+  "category": "legal-intelligence",
+  "description": "Autonomous legal intelligence agent that analyzes PDFs, collects Apify evidence, detects contradictions, reconstructs timelines, and scores legal risk.",
+  "tags": ["legal", "investigation", "apify", "superplane", "openai"],
+  "entity_pricing": {
+    "enabled": false
+  },
+  "webhook_path": "/webhook/sync",
+  "health_path": "/health"
+}

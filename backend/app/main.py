@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 from app.config import settings
 from app.routes import router
+from app.services.zynd_service import ZyndService
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -23,6 +24,7 @@ app.add_middleware(
 
 # Include routes
 app.include_router(router)
+zynd_service = ZyndService()
 
 
 @app.get("/")
@@ -44,6 +46,19 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "version": settings.API_VERSION
     }
+
+
+@app.get("/.well-known/agent.json")
+async def zynd_agent_card():
+    """Zynd-compatible agent card for registry/deployer discovery"""
+    return zynd_service.agent_card()
+
+
+@app.post("/webhook/sync")
+async def zynd_sync_webhook(request: Request):
+    """Zynd-compatible synchronous webhook entrypoint"""
+    payload = await request.json()
+    return await zynd_service.handle_sync(payload)
 
 
 @app.exception_handler(Exception)

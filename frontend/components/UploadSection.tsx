@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, File, Loader } from 'lucide-react'
+import { Upload, FileText, Loader, ScanText, Search, ShieldCheck } from 'lucide-react'
 import axios from 'axios'
 
 interface UploadSectionProps {
@@ -11,6 +11,7 @@ interface UploadSectionProps {
 export default function UploadSection({ onUploadSuccess }: UploadSectionProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [statusText, setStatusText] = useState('Ready')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -47,8 +48,10 @@ export default function UploadSection({ onUploadSuccess }: UploadSectionProps) {
     formData.append('file', selectedFile)
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/upload`,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      setStatusText('Uploading document')
+      const uploadResponse = await axios.post(
+        `${apiUrl}/api/upload`,
         formData,
         {
           headers: {
@@ -56,119 +59,141 @@ export default function UploadSection({ onUploadSuccess }: UploadSectionProps) {
           },
         }
       )
-      onUploadSuccess(response.data)
+      setStatusText(uploadResponse.data.ocr_used ? 'OCR complete' : 'Text extracted')
+      const analysisResponse = await axios.post(
+        `${apiUrl}/api/analyze/${uploadResponse.data.file_id}`,
+        {
+          file_id: uploadResponse.data.file_id,
+          include_web_investigation: true,
+          include_contradiction_detection: true,
+          include_timeline: true,
+          include_risk_assessment: true,
+        }
+      )
+      setStatusText('Agent report ready')
+      onUploadSuccess({
+        ...uploadResponse.data,
+        ...analysisResponse.data,
+      })
       setSelectedFile(null)
     } catch (error) {
       console.error('Upload failed:', error)
-      alert('Upload failed. Please try again.')
+      setStatusText('Failed')
+      alert('Upload or analysis failed. Please check the backend and try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <section className="min-h-screen pt-20 pb-20 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Title */}
-        <div className="text-center mb-12">
-          <h2 className="gradient-text text-4xl md:text-5xl font-bold mb-4">
-            Upload Legal Documents
-          </h2>
-          <p className="text-gray-400 text-lg">
-            Upload PDF documents for AI-powered legal analysis and investigation
-          </p>
-        </div>
-
-        {/* Upload Area */}
-        <div
-          className={`glass-effect rounded-2xl p-12 transition-all duration-300 ${
-            isDragging ? 'border-blue-400 bg-glass-lighter' : 'border-glass-lighter'
-          } border-2`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="flex flex-col items-center justify-center space-y-6">
-            {/* Icon */}
-            <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center">
-                <Upload size={40} className="text-white" />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl opacity-0 blur-xl"></div>
+    <section className="px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <span className="status-pill"><span className="h-2 w-2 rounded-full bg-emerald-400"></span>Gemini live</span>
+              <span className="status-pill"><span className="h-2 w-2 rounded-full bg-sky-400"></span>Apify live</span>
+              <span className="status-pill"><span className="h-2 w-2 rounded-full bg-indigo-400"></span>OCR enabled</span>
             </div>
-
-            {/* Text */}
-            <div className="text-center">
-              {selectedFile ? (
-                <>
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <File size={20} className="text-green-400" />
-                    <p className="text-white font-semibold">{selectedFile.name}</p>
-                  </div>
-                  <p className="text-gray-400 text-sm">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-white text-xl font-semibold mb-1">
-                    Drag and drop your PDF here
-                  </p>
-                  <p className="text-gray-400">or click to browse</p>
-                </>
-              )}
-            </div>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50"
-              >
-                Select File
-              </button>
-              {selectedFile && (
-                <button
-                  onClick={handleUpload}
-                  disabled={isLoading}
-                  className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader size={20} className="animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    'Upload & Analyze'
-                  )}
-                </button>
-              )}
-            </div>
+            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Legal Document Intake
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
+              Upload a PDF and run the autonomous investigation pipeline with OCR, web evidence, risk scoring, and report generation.
+            </p>
+          </div>
+          <div className="surface-muted px-4 py-3">
+            <p className="text-xs uppercase text-slate-500">Run status</p>
+            <p className="mt-1 text-sm font-medium text-slate-100">{statusText}</p>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: '📄', title: 'PDF Support', desc: 'Upload any PDF document up to 50MB' },
-            { icon: '🤖', title: 'AI Analysis', desc: 'Powered by advanced AI algorithms' },
-            { icon: '🔒', title: 'Secure', desc: 'Your documents are encrypted and protected' },
-          ].map((item, idx) => (
-            <div key={idx} className="glass-effect rounded-lg p-6 text-center">
-              <div className="text-4xl mb-3">{item.icon}</div>
-              <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-              <p className="text-gray-400 text-sm">{item.desc}</p>
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
+          <div
+            className={`surface-panel border-2 p-6 transition-colors md:p-8 ${
+              isDragging ? 'border-sky-400 bg-sky-950/30' : 'border-slate-700'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-950/30 p-8 text-center">
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-lg border border-sky-500/30 bg-sky-500/10">
+                <Upload size={26} className="text-sky-300" />
+              </div>
+
+              {selectedFile ? (
+                <div className="max-w-full">
+                  <div className="mb-2 flex items-center justify-center gap-2">
+                    <FileText size={20} className="shrink-0 text-emerald-300" />
+                    <p className="truncate text-base font-semibold text-white">{selectedFile.name}</p>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB PDF selected
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xl font-semibold text-white">Drop a PDF legal file</p>
+                  <p className="mt-2 text-sm text-slate-400">Contracts, notices, scanned pleadings, and agreements are supported.</p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800"
+                >
+                  <FileText size={18} />
+                  Select PDF
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isLoading}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader size={18} className="animate-spin" />
+                      Running
+                    </>
+                  ) : (
+                    <>
+                      <Search size={18} />
+                      Run Agents
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          ))}
+          </div>
+
+          <aside className="space-y-4">
+            {[
+              { icon: ScanText, title: 'OCR fallback', desc: 'Scanned PDFs are rendered and read with Gemini Vision.' },
+              { icon: Search, title: 'Evidence search', desc: 'Apify collects public web context for extracted entities.' },
+              { icon: ShieldCheck, title: 'Risk scoring', desc: 'Findings are scored and packaged into a review-ready report.' },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="surface-panel p-5">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sky-300">
+                    <Icon size={20} />
+                  </div>
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{item.desc}</p>
+                </div>
+              )
+            })}
+          </aside>
         </div>
       </div>
     </section>

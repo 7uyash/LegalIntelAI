@@ -2,23 +2,40 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, Loader } from 'lucide-react'
+import { CheckCircle, FileInput, Loader, Network, Search, ShieldAlert, GitCommitVertical, FileCheck } from 'lucide-react'
 
 interface WorkflowSectionProps {
   data: any
 }
 
+type WorkflowStep = {
+  id: number
+  name: string
+  status: string
+  summary: string
+  provider: string
+}
+
 export default function WorkflowSection({ data }: WorkflowSectionProps) {
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const entityCount = data?.entities?.contacts
+    || data?.entities?.parties?.length
+    || data?.entities?.amounts?.length
+    || 0
 
-  const steps = [
-    { id: 1, name: 'Document Ingestion', status: 'completed' },
-    { id: 2, name: 'Text Extraction', status: 'completed' },
-    { id: 3, name: 'Entity Recognition', status: 'in-progress' },
-    { id: 4, name: 'Relationship Mapping', status: 'pending' },
-    { id: 5, name: 'Legal Analysis', status: 'pending' },
-    { id: 6, name: 'Report Generation', status: 'pending' },
-  ]
+  const steps: WorkflowStep[] = data?.workflow?.length
+    ? data.workflow.map((step: any, index: number) => ({
+        id: index + 1,
+        name: step.name,
+        status: step.status,
+        summary: step.summary,
+        provider: step.provider,
+      }))
+    : [
+        { id: 1, name: 'Document Ingestion', status: 'completed', summary: 'Document uploaded and parsed.', provider: 'LegalIntel' },
+        { id: 2, name: 'Text Extraction', status: 'completed', summary: 'PDF text extracted for analysis.', provider: 'PyPDF2' },
+        { id: 3, name: 'Agent Analysis', status: 'completed', summary: 'Autonomous workflow ready.', provider: 'LegalIntel' },
+      ]
 
   useEffect(() => {
     // Simulate workflow progression
@@ -36,141 +53,123 @@ export default function WorkflowSection({ data }: WorkflowSectionProps) {
   }, [])
 
   return (
-    <section className="min-h-screen pt-20 pb-20 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Title */}
-        <div className="text-center mb-16">
-          <h2 className="gradient-text text-4xl md:text-5xl font-bold mb-4">
-            AI Agent Workflow
-          </h2>
-          <p className="text-gray-400 text-lg">
-            Watch as our AI agents analyze and process your legal documents
-          </p>
+    <section className="px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wide text-sky-300">Agent Run</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Investigation Workflow
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
+              Each agent produces an auditable artifact for the legal intelligence report.
+            </p>
+          </div>
+          <div className="surface-muted px-4 py-3">
+            <p className="text-xs uppercase text-slate-500">Completion</p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-300">
+              {Math.round((completedSteps.length / steps.length) * 100)}%
+            </p>
+          </div>
         </div>
 
-        {/* Workflow Timeline */}
-        <div className="space-y-8">
-          {steps.map((step, index) => (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {steps.map((step: WorkflowStep, index: number) => (
             <motion.div
               key={step.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.2 }}
-              className="flex items-start gap-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.06 }}
+              className="surface-panel p-5"
             >
-              {/* Step indicator */}
-              <div className="flex flex-col items-center">
-                <motion.div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${
                     completedSteps.includes(index)
-                      ? 'bg-green-500 text-white'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
                       : step.status === 'in-progress'
-                      ? 'bg-blue-500 text-white animate-pulse'
-                      : 'bg-gray-700 text-gray-400'
+                      ? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
+                      : 'border-slate-700 bg-slate-900 text-slate-500'
                   }`}
-                  animate={
-                    step.status === 'in-progress'
-                      ? { scale: [1, 1.1, 1] }
-                      : {}
-                  }
-                  transition={{ duration: 1, repeat: Infinity }}
                 >
                   {completedSteps.includes(index) ? (
-                    <CheckCircle size={24} />
+                    <CheckCircle size={20} />
                   ) : step.status === 'in-progress' ? (
-                    <Loader size={24} className="animate-spin" />
+                    <Loader size={20} className="animate-spin" />
                   ) : (
-                    step.id
+                    <StepIcon index={index} />
                   )}
-                </motion.div>
-                {index !== steps.length - 1 && (
-                  <motion.div
-                    className={`w-1 h-12 mt-2 transition-colors duration-300 ${
-                      completedSteps.includes(index + 1)
-                        ? 'bg-green-500'
-                        : 'bg-gray-700'
-                    }`}
-                    animate={
-                      completedSteps.includes(index)
-                        ? { background: 'rgb(34, 197, 94)' }
-                        : {}
-                    }
-                  ></motion.div>
-                )}
-              </div>
-
-              {/* Step content */}
-              <motion.div
-                className="glass-effect rounded-lg p-6 flex-1"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white text-lg font-semibold mb-2">
-                      {step.name}
-                    </h3>
-                    <p className="text-gray-400">
-                      {step.status === 'completed' && 'Processing completed'}
-                      {step.status === 'in-progress' && 'Currently processing...'}
-                      {step.status === 'pending' && 'Waiting to start'}
-                    </p>
-                  </div>
-                  <div className="text-3xl">
-                    {index === 0 && '📥'}
-                    {index === 1 && '📖'}
-                    {index === 2 && '🔍'}
-                    {index === 3 && '🔗'}
-                    {index === 4 && '⚖️'}
-                    {index === 5 && '📋'}
-                  </div>
                 </div>
-
-                {step.status === 'in-progress' && (
-                  <motion.div
-                    className="mt-4 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full"
-                    animate={{ scaleX: [0, 1] }}
-                    transition={{ duration: 2 }}
-                  ></motion.div>
-                )}
-              </motion.div>
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-semibold text-white">{step.name}</h3>
+                    <span className="rounded-full border border-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                      {step.provider}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-6 text-slate-400">{step.summary}</p>
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Summary */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-16 glass-effect rounded-lg p-8 text-center"
+          className="surface-panel mt-6 p-6"
         >
-          <h3 className="text-white text-2xl font-bold mb-4">Processing Summary</h3>
-          <p className="text-gray-400 mb-4">
-            Document: {data?.filename || 'legal_document.pdf'}
-          </p>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-dark-800 rounded-lg p-4">
-              <p className="text-gray-400 text-sm mb-1">Pages Analyzed</p>
-              <p className="text-blue-400 text-2xl font-bold">
+          <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Processing Summary</h3>
+              <p className="text-sm text-slate-500">{data?.filename || 'legal_document.pdf'}</p>
+            </div>
+            <span className="status-pill">
+              Extraction: {data?.ocr_used ? 'Gemini OCR' : data?.extraction_method || 'Embedded PDF text'}
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="surface-muted p-4">
+              <p className="text-xs uppercase text-slate-500">Pages Analyzed</p>
+              <p className="mt-2 text-2xl font-semibold text-sky-300">
                 {data?.pages || '--'}
               </p>
             </div>
-            <div className="bg-dark-800 rounded-lg p-4">
-              <p className="text-gray-400 text-sm mb-1">Entities Found</p>
-              <p className="text-purple-400 text-2xl font-bold">
-                {data?.entities || '--'}
+            <div className="surface-muted p-4">
+              <p className="text-xs uppercase text-slate-500">Entities Found</p>
+              <p className="mt-2 text-2xl font-semibold text-indigo-300">
+                {entityCount || (typeof data?.entities === 'string' ? data.entities : '--')}
               </p>
             </div>
-            <div className="bg-dark-800 rounded-lg p-4">
-              <p className="text-gray-400 text-sm mb-1">Progress</p>
-              <p className="text-green-400 text-2xl font-bold">
-                {Math.round((completedSteps.length / steps.length) * 100)}%
+            <div className="surface-muted p-4">
+              <p className="text-xs uppercase text-slate-500">Risk Score</p>
+              <p className="mt-2 text-2xl font-semibold text-emerald-300">
+                {data?.risk?.score ?? '--'}
               </p>
             </div>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {['zynd', 'apify', 'superplane'].map((name) => (
+              <div key={name} className="surface-muted p-4">
+                <p className="mb-1 text-xs uppercase text-slate-500">{name}</p>
+                <p className="font-semibold text-white">
+                  {data?.integrations?.[name]?.enabled ? 'Enabled' : 'Ready'}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                  {data?.integrations?.[name]?.mode || data?.integrations?.[name]?.purpose || data?.integrations?.[name]?.registry_url || 'Configured surface'}
+                </p>
+              </div>
+            ))}
           </div>
         </motion.div>
       </div>
     </section>
   )
+}
+
+function StepIcon({ index }: { index: number }) {
+  const icons = [FileInput, Search, Network, Search, ShieldAlert, GitCommitVertical, ShieldAlert, FileCheck]
+  const Icon = icons[index] || CheckCircle
+  return <Icon size={20} />
 }

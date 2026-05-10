@@ -18,13 +18,15 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #0b1120;
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.22);
 }
 
 .glass-effect-hover {
@@ -32,9 +34,21 @@ body {
 }
 
 .gradient-text {
-  @apply bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent;
+  @apply text-white;
 }
 
 .blur-glow {
   @apply absolute rounded-full blur-3xl;
+}
+
+.surface-panel {
+  @apply rounded-lg border border-slate-700/70 bg-slate-900/70 shadow-xl shadow-slate-950/20;
+}
+
+.surface-muted {
+  @apply rounded-lg border border-slate-800 bg-slate-950/40;
+}
+
+.status-pill {
+  @apply inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-300;
 }

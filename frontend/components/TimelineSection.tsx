@@ -1,51 +1,35 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Calendar, FileText, User } from 'lucide-react'
+import { Calendar, FileText, GitCommitVertical, Pencil, ShieldAlert } from 'lucide-react'
 
 interface TimelineSectionProps {
   data: any
 }
 
 export default function TimelineSection({ data }: TimelineSectionProps) {
-  const timelineEvents = [
-    {
-      date: '2024-05-01',
-      title: 'Contract Initiation',
-      description: 'Agreement between parties established',
-      type: 'milestone',
-    },
-    {
-      date: '2024-06-15',
-      title: 'Payment Terms Agreed',
-      description: 'Financial obligations documented',
-      type: 'event',
-    },
-    {
-      date: '2024-07-22',
-      title: 'Amendment #1',
-      description: 'Schedule modification and timeline adjustment',
-      type: 'amendment',
-    },
-    {
-      date: '2024-08-10',
-      title: 'Compliance Review',
-      description: 'Legal compliance assessment completed',
-      type: 'review',
-    },
-    {
-      date: '2024-09-05',
-      title: 'Liability Clause Update',
-      description: 'Risk mitigation terms updated',
-      type: 'update',
-    },
-    {
-      date: '2024-10-01',
-      title: 'Current Status',
-      description: 'Agreement active with all terms in effect',
-      type: 'current',
-    },
-  ]
+  const timelineEvents = data?.timeline?.length
+    ? data.timeline
+    : [
+        {
+          date: '2024-05-01',
+          title: 'Contract Initiation',
+          description: 'Agreement between parties established',
+          type: 'milestone',
+        },
+        {
+          date: '2024-06-15',
+          title: 'Payment Terms Agreed',
+          description: 'Financial obligations documented',
+          type: 'event',
+        },
+        {
+          date: '2024-07-22',
+          title: 'Amendment #1',
+          description: 'Schedule modification and timeline adjustment',
+          type: 'amendment',
+        },
+      ]
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -65,89 +49,81 @@ export default function TimelineSection({ data }: TimelineSectionProps) {
   }
 
   return (
-    <section className="min-h-screen pt-20 pb-20 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Title */}
-        <div className="text-center mb-16">
-          <h2 className="gradient-text text-4xl md:text-5xl font-bold mb-4">
-            Document Timeline
-          </h2>
-          <p className="text-gray-400 text-lg">
-            Track all key events and modifications across your legal documents
-          </p>
+    <section className="px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wide text-sky-300">Timeline</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Document Events
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
+              Dates and events extracted from the legal document and OCR output.
+            </p>
+          </div>
+          <span className="status-pill">
+            {timelineEvents.length} event{timelineEvents.length === 1 ? '' : 's'}
+          </span>
         </div>
 
-        {/* Timeline */}
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500"></div>
+        <div className="surface-panel p-5 md:p-6">
+          <div className="relative">
+            <div className="absolute left-5 top-0 bottom-0 w-px bg-slate-700"></div>
 
-          {/* Events */}
-          <div className="space-y-12">
-            {timelineEvents.map((event, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="relative pl-24"
-              >
-                {/* Event marker */}
+            <div className="space-y-5">
+              {timelineEvents.map((event: any, idx: number) => (
                 <motion.div
-                  className={`absolute left-0 w-16 h-16 rounded-full ${getEventColor(
-                    event.type
-                  )} flex items-center justify-center -translate-x-6`}
-                  whileHover={{ scale: 1.2 }}
+                  key={idx}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.06 }}
+                  className="relative pl-14"
                 >
-                  {event.type === 'milestone' && <Calendar size={28} className="text-white" />}
-                  {event.type === 'event' && <FileText size={28} className="text-white" />}
-                  {event.type === 'amendment' && <span className="text-2xl">📝</span>}
-                  {event.type === 'review' && <span className="text-2xl">✓</span>}
-                  {event.type === 'update' && <span className="text-2xl">⚡</span>}
-                  {event.type === 'current' && <span className="text-2xl">🔴</span>}
-                </motion.div>
-
-                {/* Content */}
-                <motion.div
-                  className="glass-effect rounded-lg p-6"
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-white text-lg font-semibold">{event.title}</h3>
-                    <span className="text-xs font-mono text-blue-400">{event.date}</span>
+                  <div className={`absolute left-0 top-1 flex h-10 w-10 items-center justify-center rounded-lg ${getEventColor(event.type)} text-white`}>
+                    <EventIcon type={event.type} />
                   </div>
-                  <p className="text-gray-400 mb-3">{event.description}</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span className={`inline-block w-2 h-2 rounded-full ${getEventColor(event.type)}`}></span>
-                    <span className="uppercase tracking-wider">{event.type}</span>
+                  <div className="surface-muted p-4">
+                    <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <h3 className="font-semibold text-white">{event.title}</h3>
+                      <span className="font-mono text-xs text-sky-300">{event.date}</span>
+                    </div>
+                    <p className="text-sm leading-6 text-slate-400">{event.description}</p>
+                    <p className="mt-3 text-xs uppercase tracking-wide text-slate-500">{event.type}</p>
                   </div>
                 </motion.div>
-              </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Summary Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="mt-6 grid gap-4 md:grid-cols-3"
         >
           {[
-            { icon: '📅', label: 'Time Span', value: '5 months' },
-            { icon: '📝', label: 'Total Events', value: '6 events' },
-            { icon: '✏️', label: 'Amendments', value: '1 amendment' },
-          ].map((stat, idx) => (
-            <div key={idx} className="glass-effect rounded-lg p-6 text-center">
-              <div className="text-4xl mb-3">{stat.icon}</div>
-              <p className="text-gray-400 text-sm mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-            </div>
-          ))}
+            { icon: Calendar, label: 'Timeline Mode', value: data?.timeline?.length ? 'Extracted' : 'Demo' },
+            { icon: GitCommitVertical, label: 'Total Events', value: `${timelineEvents.length} events` },
+            { icon: ShieldAlert, label: 'Risk Level', value: data?.risk?.overall_risk || 'Pending' },
+          ].map((stat, idx) => {
+            const Icon = stat.icon
+            return (
+              <div key={idx} className="surface-panel p-5">
+                <Icon size={20} className="mb-3 text-sky-300" />
+                <p className="mb-1 text-xs uppercase text-slate-500">{stat.label}</p>
+                <p className="text-xl font-semibold text-white">{stat.value}</p>
+              </div>
+            )
+          })}
         </motion.div>
       </div>
     </section>
   )
+}
+
+function EventIcon({ type }: { type: string }) {
+  if (type === 'milestone') return <Calendar size={18} />
+  if (type === 'amendment') return <Pencil size={18} />
+  return <FileText size={18} />
 }
